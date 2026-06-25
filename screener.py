@@ -19,6 +19,7 @@ import pandas as pd
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
+from alpaca.data.enums import DataFeed
 
 import config
 
@@ -49,6 +50,7 @@ def fetch_daily_bars(client, symbols, lookback_days=300):
         timeframe=TimeFrame.Day,
         start=start,
         end=end,
+      feed=DataFeed.IEX, # free tier only has access to IEX, not SIP
     )
 
     bar_set = client.get_stock_bars(request)
