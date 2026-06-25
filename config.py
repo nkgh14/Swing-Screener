@@ -9,9 +9,9 @@ Edit these values to change what the screener looks for.
 WATCHLIST = [
     "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD",
     "NFLX", "CRM", "ADBE", "AVGO", "QCOM", "INTC", "CSCO", "ORCL",
-    "JPM", "BAC", "GS", "V", "MA",
+    "JPM", "UUUU", "GS", "V", "MA",
     "XOM", "CVX",
-    "JNJ", "PFE", "UNH",
+    "JNJ", "CEG", "UNH",
     "WMT", "COST", "HD", "NKE",
     "DIS", "BA",
     "SPY", "QQQ",  # ETFs are fine on Alpaca even though we filter to "US stocks" broadly
@@ -45,6 +45,6 @@ VOLUME_SURGE_MULTIPLIER = 1.5   # today's volume must be at least this many time
 NEWS_LOOKBACK_DAYS = 2   # how far back to pull news for flagged stocks
 
 # ---- Email ----
-EMAIL_FROM = "YOUR_GMAIL_ADDRESS@gmail.com"
-EMAIL_TO = "YOUR_GMAIL_ADDRESS@gmail.com"     # can be the same address, or a different one
+EMAIL_FROM = "NKRAJISNIK2@gmail.com"
+EMAIL_TO = "NKRAJISNIK2@gmail.com"     # can be the same address, or a different one
 EMAIL_SUBJECT_PREFIX = "Swing Screener"
