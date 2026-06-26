@@ -26,7 +26,7 @@ def _fmt_chg(v):
 
 
 def _badge(setup):
-    label = "Pullback" if setup == "pullback" else "Oversold bounce"
+    label = "Tight consolidation"
     return (
         f'<span style="background:#dcfce7;color:#166534;font-size:12px;'
         f'font-weight:600;padding:3px 10px;border-radius:12px;'
@@ -57,8 +57,8 @@ def _card(r):
     metrics = (
         '<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;">'
         "<tr>"
-        + _metric_box("RSI", r["rsi"])
-        + _metric_box("Volume", f"{r['volume_ratio']}x")
+        + _metric_box("ADR", f"{r['adr']}%")
+        + _metric_box("ATR ratio", f"{r['atr_ratio']}x")
         + _metric_box("Volatility", vol_str, highlight=vol_high)
         + "</tr></table>"
     )
@@ -91,14 +91,20 @@ def _card(r):
         f'</span>'
     )
 
+    ma_str = (
+        f'<div style="font-size:11px;color:#94a3b8;margin-top:3px;">'
+        f'MA20 {r["ma20"]} &nbsp;·&nbsp; MA50 {r["ma50"]} &nbsp;·&nbsp; MA200 {r["ma200"]}'
+        f'</div>'
+    )
+
     return (
         '<div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;'
         'padding:16px 20px;margin-bottom:16px;">'
         '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
         f'<td><span style="font-size:20px;font-weight:700;color:#0f172a;">{r["symbol"]}</span>'
         f'<span style="font-size:16px;color:#475569;margin-left:10px;">${r["price"]}</span>'
-        f'{change_str}</td>'
-        f'<td style="text-align:right;white-space:nowrap;">{setup_badges}</td>'
+        f'{change_str}{ma_str}</td>'
+        f'<td style="text-align:right;white-space:nowrap;vertical-align:top;">{setup_badges}</td>'
         '</tr></table>'
         f'{metrics}'
         f'{news_html}'

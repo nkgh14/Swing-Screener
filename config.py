@@ -21,30 +21,33 @@ WATCHLIST = [
 MIN_PRICE = 10.0           # ignore anything below this price
 MIN_AVG_VOLUME = 500_000   # 20-day average daily volume must be at least this
 
-# ---- Trend filter ----
-# Stock must be above its 50-day MA, and 50-day MA above 200-day MA, to count as "uptrend"
-TREND_LOOKBACK_SHORT = 50
-TREND_LOOKBACK_LONG = 200
+# ---- Trend filter: MAs must be stacked and sloping higher ----
+MA_SHORT  = 20
+MA_MID    = 50
+MA_LONG   = 200
+# How many days back to compare each MA against itself to check slope
+MA_SLOPE_LOOKBACK = 10
 
-# ---- Momentum filters (the two setups, flagged separately) ----
-RSI_PERIOD = 14
+# ---- Volatility filter: Average Daily Range must meet minimum ----
+# ADR = average of (high - low) / close over the last 20 days
+ADR_LOOKBACK = 20
+ADR_MIN_PCT  = 3.5   # minimum ADR percentage
 
-# Setup A: Pullback in an uptrend
-PULLBACK_RSI_MIN = 40
-PULLBACK_RSI_MAX = 60
-
-# Setup B: Oversold bounce
-# Today's RSI must cross back above this level after being below it
-OVERSOLD_RSI_THRESHOLD = 30
+# ---- Tight consolidation filter ----
+# Recent ATR (last CONSOLIDATION_RECENT days) must be this fraction or less
+# of the prior ATR (prior CONSOLIDATION_PRIOR days). Lower = tighter.
+CONSOLIDATION_RECENT = 10
+CONSOLIDATION_PRIOR  = 30
+CONSOLIDATION_MAX_RATIO = 0.75   # recent ATR / prior ATR must be <= this
 
 # ---- Volume confirmation ----
-VOLUME_SURGE_LOOKBACK = 20      # compare today's volume to this many days' average
-VOLUME_SURGE_MULTIPLIER = 1.5   # today's volume must be at least this many times the average
+VOLUME_SURGE_LOOKBACK    = 20    # compare today's volume to this many days' average
+VOLUME_SURGE_MULTIPLIER  = 1.5   # today's volume must be at least this many times the average
 
 # ---- News ----
 NEWS_LOOKBACK_DAYS = 2   # how far back to pull news for flagged stocks
 
 # ---- Email ----
 EMAIL_FROM = "NKRAJISNIK2@gmail.com"
-EMAIL_TO = "NKRAJISNIK2@gmail.com"     # can be the same address, or a different one
+EMAIL_TO   = "NKRAJISNIK2@gmail.com"
 EMAIL_SUBJECT_PREFIX = "Swing Screener"
