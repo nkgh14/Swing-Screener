@@ -42,9 +42,14 @@ def fetch_daily_bars(client, symbols, lookback_days=300):
     Returns a dict: { "AAPL": DataFrame, "MSFT": DataFrame, ... }
     Each DataFrame is indexed by date with columns: open, high, low, close, volume
     """
-    end = datetime.now()
+    # The free Alpaca tier rejects requests whose time window reaches all
+    # the way to "now" (the API treats anything in roughly the last 15-20
+    # minutes as restricted, even when feed=IEX is explicitly set). Since
+    # we only care about *completed* daily bars anyway (today's bar isn't
+    # finalized until after the close), we end the window 1 full day back
+    # to stay safely clear of that restriction.
+    end = datetime.now() - timedelta(days=1)
     start = end - timedelta(days=lookback_days)
-
     request = StockBarsRequest(
         symbol_or_symbols=symbols,
         timeframe=TimeFrame.Day,
