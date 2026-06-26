@@ -21,57 +21,136 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 
+def _fmt_chg(v):
+    return f"+{v}%" if v >= 0 else f"{v}%"
+
+
+def _badge(setup):
+    label = "Pullback" if setup == "pullback" else "Oversold bounce"
+    return (
+        f'<span style="background:#dcfce7;color:#166534;font-size:12px;'
+        f'font-weight:600;padding:3px 10px;border-radius:12px;'
+        f'white-space:nowrap;">{label}</span>'
+    )
+
+
+def _metric_box(label, value, highlight=False):
+    bg = "#fef3c7" if highlight else "#f1f5f9"
+    color = "#92400e" if highlight else "#1e293b"
+    label_color = "#92400e" if highlight else "#64748b"
+    return (
+        f'<td style="width:33%;padding:0 4px;">'
+        f'<div style="background:{bg};border-radius:6px;padding:8px 10px;text-align:center;">'
+        f'<div style="font-size:11px;color:{label_color};margin-bottom:3px;">{label}</div>'
+        f'<div style="font-size:15px;font-weight:600;color:{color};">{value}</div>'
+        f'</div></td>'
+    )
+
+
+def _card(r):
+    vol_pct = r.get("vol_pct")
+    vol_str = f"{vol_pct}%" if vol_pct is not None else "n/a"
+    vol_high = vol_pct is not None and vol_pct > 70
+
+    setup_badges = " ".join(_badge(s) for s in r["setups"])
+
+    metrics = (
+        '<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;">'
+        "<tr>"
+        + _metric_box("RSI", r["rsi"])
+        + _metric_box("Volume", f"{r['volume_ratio']}x")
+        + _metric_box("Volatility", vol_str, highlight=vol_high)
+        + "</tr></table>"
+    )
+
+    news_items = r.get("news", [])
+    if news_items:
+        news_rows = "".join(
+            f'<tr><td style="padding:3px 0;font-size:13px;color:#1e293b;">'
+            f'&bull; <a href="{item["url"]}" style="color:#2563eb;text-decoration:none;">'
+            f'{item["headline"]}</a></td></tr>'
+            for item in news_items
+        )
+        news_html = (
+            '<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">'
+            '<div style="font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase;'
+            'letter-spacing:0.05em;">Recent news</div>'
+            f"<table width='100%' cellpadding='0' cellspacing='0'>{news_rows}</table>"
+            "</div>"
+        )
+    else:
+        news_html = (
+            '<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;'
+            'font-size:12px;color:#94a3b8;">No recent news found</div>'
+        )
+
+    change_str = (
+        f'<span style="font-size:12px;color:#64748b;margin-left:10px;">'
+        f'1d&nbsp;{_fmt_chg(r["change_1d"])}&nbsp;&nbsp;'
+        f'5d&nbsp;{_fmt_chg(r["change_5d"])}'
+        f'</span>'
+    )
+
+    return (
+        '<div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;'
+        'padding:16px 20px;margin-bottom:16px;">'
+        '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
+        f'<td><span style="font-size:20px;font-weight:700;color:#0f172a;">{r["symbol"]}</span>'
+        f'<span style="font-size:16px;color:#475569;margin-left:10px;">${r["price"]}</span>'
+        f'{change_str}</td>'
+        f'<td style="text-align:right;white-space:nowrap;">{setup_badges}</td>'
+        '</tr></table>'
+        f'{metrics}'
+        f'{news_html}'
+        '</div>'
+    )
+
+
 def format_email_body(flagged_results, error=None):
     today = datetime.now().strftime("%Y-%m-%d")
 
+    outer_open = (
+        '<div style="background:#f8fafc;padding:24px;font-family:Arial,Helvetica,sans-serif;">'
+        '<div style="max-width:600px;margin:0 auto;">'
+    )
+    outer_close = "</div></div>"
+
     if error:
-        return f"Screener run on {today} FAILED with an error:\n\n{error}\n\nCheck the GitHub Actions log for details."
+        body = (
+            f'<h2 style="color:#dc2626;font-size:18px;margin:0 0 12px;">Screener run failed — {today}</h2>'
+            f'<pre style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;'
+            f'padding:12px;font-size:13px;color:#7f1d1d;white-space:pre-wrap;">{error}</pre>'
+            f'<p style="color:#64748b;font-size:13px;">Check the GitHub Actions log for details.</p>'
+        )
+        return outer_open + body + outer_close
 
-    if not flagged_results:
-        return f"Screener run on {today}: no symbols matched today's criteria.\n\n(This email confirms the bot ran successfully.)"
-
-    lines = [f"Screener run on {today}: {len(flagged_results)} symbol(s) matched.\n"]
-
-    pullback_hits = [r for r in flagged_results if "pullback" in r["setups"]]
-    bounce_hits = [r for r in flagged_results if "oversold_bounce" in r["setups"]]
-
-    def format_result_block(r):
-        vol_str = f"{r['vol_pct']}%" if r.get("vol_pct") is not None else "n/a"
-        def fmt_chg(v):
-            return f"+{v}%" if v >= 0 else f"{v}%"
-        block = [
-            f"  {r['symbol']}  —  ${r['price']}  1d: {fmt_chg(r['change_1d'])}  5d: {fmt_chg(r['change_5d'])}  (RSI {r['rsi']})",
-            f"    50-day MA: {r['ma50']}   200-day MA: {r['ma200']}",
-            f"    Volume: {r['volume_ratio']}x 20-day average"
-            + (" [CONFIRMED]" if r["volume_confirmed"] else " [below threshold]"),
-            f"    Historical volatility: {vol_str} of 10-day windows moved 10%+",
-        ]
-        news = r.get("news", [])
-        if news:
-            block.append("    Recent news:")
-            for item in news:
-                block.append(f"      - ({item['source']}, {item['datetime']}) {item['headline']}")
-                block.append(f"        {item['url']}")
-        else:
-            block.append("    Recent news: none found")
-        return "\n".join(block)
-
-    if pullback_hits:
-        lines.append(f"\n--- Pullback in Uptrend ({len(pullback_hits)}) ---")
-        for r in pullback_hits:
-            lines.append(format_result_block(r))
-
-    if bounce_hits:
-        lines.append(f"\n--- Oversold Bounce ({len(bounce_hits)}) ---")
-        for r in bounce_hits:
-            lines.append(format_result_block(r))
-
-    lines.append(
-        "\n\nReminder: this is a screening tool, not trading advice. "
-        "Verify everything yourself before acting on it."
+    header = (
+        f'<h1 style="font-size:22px;font-weight:700;color:#0f172a;margin:0 0 4px;">Swing screener</h1>'
+        f'<p style="font-size:14px;color:#64748b;margin:0 0 20px;">{today}</p>'
     )
 
-    return "\n".join(lines)
+    if not flagged_results:
+        body = (
+            header
+            + '<p style="color:#475569;font-size:15px;">No symbols matched today\'s criteria.</p>'
+            + '<p style="font-size:12px;color:#94a3b8;">(This email confirms the bot ran successfully.)</p>'
+        )
+        return outer_open + body + outer_close
+
+    summary = (
+        f'<p style="font-size:15px;color:#475569;margin:0 0 20px;">'
+        f'{len(flagged_results)} match{"es" if len(flagged_results) != 1 else ""} today</p>'
+    )
+
+    cards = "".join(_card(r) for r in flagged_results)
+
+    disclaimer = (
+        '<p style="font-size:12px;color:#94a3b8;margin-top:20px;border-top:1px solid #e2e8f0;'
+        'padding-top:16px;">This is a screening tool, not trading advice. '
+        'Verify everything yourself before acting on it.</p>'
+    )
+
+    return outer_open + header + summary + cards + disclaimer + outer_close
 
 
 def send_email(flagged_results=None, error=None):
@@ -96,7 +175,7 @@ def send_email(flagged_results=None, error=None):
     msg["From"] = gmail_address
     msg["To"] = config.EMAIL_TO
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(body, "html"))
 
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
