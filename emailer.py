@@ -26,7 +26,7 @@ def _fmt_chg(v):
 
 
 def _badge(setup):
-    label = "Tight consolidation"
+    label = "Uptrend + tight"
     return (
         f'<span style="background:#dcfce7;color:#166534;font-size:12px;'
         f'font-weight:600;padding:3px 10px;border-radius:12px;'
@@ -54,12 +54,13 @@ def _card(r):
 
     setup_badges = " ".join(_badge(s) for s in r["setups"])
 
+    tight_str = f"{r['tightening_ratio']}x ADR"
     metrics = (
         '<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;">'
         "<tr>"
-        + _metric_box("ADR", f"{r['adr']}%")
-        + _metric_box("ATR ratio", f"{r['atr_ratio']}x")
-        + _metric_box("Volatility", vol_str, highlight=vol_high)
+        + _metric_box("ADR (20d)", f"{r['adr']}%")
+        + _metric_box("Today range", f"{r['today_range_pct']}%  ({tight_str})")
+        + _metric_box("Hist. vol", vol_str, highlight=vol_high)
         + "</tr></table>"
     )
 
