@@ -91,6 +91,77 @@ def compute_rsi(close_prices, period=14):
     return rsi
 
 
+def fetch_volatility_bars(client, symbol):
+    """
+    Fetches 3 years of daily bars for a single symbol using the IEX feed,
+    ending 1 trading day before today (same convention as fetch_daily_bars).
+    Returns a DataFrame or None on failure.
+    """
+    end = datetime.now() - timedelta(days=1)
+    start = end - timedelta(days=3 * 365)
+
+    request = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=TimeFrame.Day,
+        start=start,
+        end=end,
+        feed=DataFeed.IEX,
+    )
+
+    try:
+        bar_set = client.get_stock_bars(request)
+        df = bar_set.df.loc[symbol].copy()
+        df.index = pd.to_datetime(df.index)
+        return df.sort_index()
+    except Exception:
+        return None
+
+
+def compute_volatility_pct(df, window=10, swing_threshold=0.10):
+    """
+    Examines every rolling `window`-day period over the symbol's price history
+    and calculates the percentage swing (period high minus period low, divided
+    by the period's opening price).
+
+    Returns the fraction of windows where the swing was >= swing_threshold.
+
+    # This is a measure of historical capability to move 10%+ in 10 trading
+    # days — not a prediction that it will happen again.
+    """
+    opens = df["open"].values
+    highs = df["high"].values
+    lows = df["low"].values
+
+    n = len(df)
+    if n < window:
+        return 0.0
+
+    hit = 0
+    total = n - window + 1
+    for i in range(total):
+        period_open = opens[i]
+        if period_open == 0:
+            total -= 1
+            continue
+        swing = (highs[i : i + window].max() - lows[i : i + window].min()) / period_open
+        if swing >= swing_threshold:
+            hit += 1
+
+    return hit / total if total > 0 else 0.0
+
+
+def passes_volatility_filter(client, symbol, min_pct=0.25):
+    """
+    Returns (passes: bool, vol_pct: float). Fetches 3 years of history and
+    checks whether at least min_pct of rolling 10-day windows had a 10%+ swing.
+    """
+    df = fetch_volatility_bars(client, symbol)
+    if df is None or df.empty:
+        return False, 0.0
+    vol_pct = compute_volatility_pct(df)
+    return vol_pct >= min_pct, round(vol_pct * 100, 1)
+
+
 def evaluate_symbol(symbol, df):
     """
     Applies all filters to a single symbol's price history.
@@ -155,6 +226,7 @@ def evaluate_symbol(symbol, df):
         "volume_ratio": round(float(volume_ratio), 2),
         "volume_confirmed": bool(volume_confirmed),
         "setups": setups_hit,
+        "vol_pct": None,  # filled in by run_screen after volatility check
     }
 
 
@@ -166,10 +238,17 @@ def run_screen():
     client = get_alpaca_client()
     bars_by_symbol = fetch_daily_bars(client, config.WATCHLIST)
 
-    flagged = []
+    candidates = []
     for symbol in config.WATCHLIST:
         result = evaluate_symbol(symbol, bars_by_symbol.get(symbol))
         if result is not None:
+            candidates.append(result)
+
+    flagged = []
+    for result in candidates:
+        passes, vol_pct = passes_volatility_filter(client, result["symbol"])
+        if passes:
+            result["vol_pct"] = vol_pct
             flagged.append(result)
 
     return flagged

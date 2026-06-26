@@ -36,11 +36,13 @@ def format_email_body(flagged_results, error=None):
     bounce_hits = [r for r in flagged_results if "oversold_bounce" in r["setups"]]
 
     def format_result_block(r):
+        vol_str = f"{r['vol_pct']}%" if r.get("vol_pct") is not None else "n/a"
         block = [
             f"  {r['symbol']}  —  ${r['price']}  (RSI {r['rsi']})",
             f"    50-day MA: {r['ma50']}   200-day MA: {r['ma200']}",
             f"    Volume: {r['volume_ratio']}x 20-day average"
             + (" [CONFIRMED]" if r["volume_confirmed"] else " [below threshold]"),
+            f"    Historical volatility: {vol_str} of 10-day windows moved 10%+",
         ]
         news = r.get("news", [])
         if news:
