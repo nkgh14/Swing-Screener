@@ -217,9 +217,14 @@ def evaluate_symbol(symbol, df):
     volume_ratio = latest_volume / avg_volume_20 if avg_volume_20 > 0 else 0
     volume_confirmed = volume_ratio >= config.VOLUME_SURGE_MULTIPLIER
 
+    change_1d = round((float(close.iloc[-1]) / float(close.iloc[-2]) - 1) * 100, 2)
+    change_5d = round((float(close.iloc[-1]) / float(close.iloc[-6]) - 1) * 100, 2)
+
     return {
         "symbol": symbol,
         "price": round(float(latest_price), 2),
+        "change_1d": change_1d,
+        "change_5d": change_5d,
         "rsi": round(float(latest_rsi), 1),
         "ma50": round(float(ma_short), 2),
         "ma200": round(float(ma_long), 2),

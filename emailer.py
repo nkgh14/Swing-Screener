@@ -37,8 +37,10 @@ def format_email_body(flagged_results, error=None):
 
     def format_result_block(r):
         vol_str = f"{r['vol_pct']}%" if r.get("vol_pct") is not None else "n/a"
+        def fmt_chg(v):
+            return f"+{v}%" if v >= 0 else f"{v}%"
         block = [
-            f"  {r['symbol']}  —  ${r['price']}  (RSI {r['rsi']})",
+            f"  {r['symbol']}  —  ${r['price']}  1d: {fmt_chg(r['change_1d'])}  5d: {fmt_chg(r['change_5d'])}  (RSI {r['rsi']})",
             f"    50-day MA: {r['ma50']}   200-day MA: {r['ma200']}",
             f"    Volume: {r['volume_ratio']}x 20-day average"
             + (" [CONFIRMED]" if r["volume_confirmed"] else " [below threshold]"),
